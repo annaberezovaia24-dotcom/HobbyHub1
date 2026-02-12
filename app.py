@@ -1,40 +1,41 @@
 import streamlit as st
-from openai import OpenAI
 
-# Set up OpenAI client
-client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
-
-st.title("💬 My Chatbot")
+st.title("🤖 HobbyHub Chatbot (No API Version)")
 
 # Initialize chat history
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
+# Simple chatbot logic
+def chatbot_response(user_input):
+    user_input = user_input.lower()
+
+    if "hello" in user_input:
+        return "Hi there! 👋 Welcome to HobbyHub!"
+    elif "hobby" in user_input:
+        return "We have art, music, coding, sports and more! 🎨🎵💻⚽"
+    elif "help" in user_input:
+        return "Sure! Tell me what hobby you're interested in."
+    elif "bye" in user_input:
+        return "Goodbye! Come back soon 😊"
+    else:
+        return "That's interesting! Tell me more!"
+
 # Display chat history
 for message in st.session_state.messages:
     with st.chat_message(message["role"]):
-        st.markdown(message["content"])
+        st.write(message["content"])
 
 # User input
 if prompt := st.chat_input("Type your message..."):
-    # Store user message
     st.session_state.messages.append({"role": "user", "content": prompt})
 
-    # Display user message
     with st.chat_message("user"):
-        st.markdown(prompt)
+        st.write(prompt)
 
-    # Get response from OpenAI
-    response = client.chat.completions.create(
-        model="gpt-4o-mini",
-        messages=st.session_state.messages,
-    )
+    response = chatbot_response(prompt)
 
-    reply = response.choices[0].message.content
+    st.session_state.messages.append({"role": "assistant", "content": response})
 
-    # Store assistant reply
-    st.session_state.messages.append({"role": "assistant", "content": reply})
-
-    # Display assistant reply
     with st.chat_message("assistant"):
-        st.markdown(reply)
+        st.write(response)
