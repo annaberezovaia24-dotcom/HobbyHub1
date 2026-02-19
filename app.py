@@ -2,7 +2,7 @@ import streamlit as st
 import os
 
 # --------------------------------------------------
-# PAGE SETTINGS
+# PAGE CONFIG
 # --------------------------------------------------
 st.set_page_config(
     page_title="HobbyHub Chatbot",
@@ -11,27 +11,36 @@ st.set_page_config(
 )
 
 # --------------------------------------------------
-# DISPLAY LOGO
+# SAFE LOGO DISPLAY
 # --------------------------------------------------
-if os.path.exists("Logo.png"):
-    st.image("Logo.png", width=180)
+logo_path = "Logo.png"
+
+if os.path.exists(logo_path) and os.path.isfile(logo_path):
+    st.image(logo_path, width=180)
 
 st.title("🎨 HobbyHub Chatbot")
-st.caption("Ask me about hobbies, art, music, coding, sports and more!")
+st.caption("Ask me about art, music, coding, sports and more!")
 
 # --------------------------------------------------
-# LOAD DOCUMENTS FROM FOLDER
+# LOAD DOCUMENTS SAFELY
 # --------------------------------------------------
 def load_documents():
     knowledge = ""
+    folder_path = "Documents"
 
-    if os.path.exists("Documents"):
-        for file in os.listdir("Documents"):
-            file_path = os.path.join("Documents", file)
+    # Only read if folder exists AND is a directory
+    if os.path.exists(folder_path) and os.path.isdir(folder_path):
 
-            if file.endswith(".txt"):
-                with open(file_path, "r", encoding="utf-8") as f:
-                    knowledge += f.read() + "\n"
+        for file in os.listdir(folder_path):
+            file_path = os.path.join(folder_path, file)
+
+            # Only read .txt files
+            if file.endswith(".txt") and os.path.isfile(file_path):
+                try:
+                    with open(file_path, "r", encoding="utf-8") as f:
+                        knowledge += f.read() + "\n"
+                except Exception:
+                    pass
 
     return knowledge.lower()
 
@@ -50,45 +59,43 @@ def chatbot_response(user_input):
     user_input = user_input.lower()
 
     # Search inside documents
-    if user_input in knowledge_base and len(user_input) > 3:
-        return "📄 I found information about that in our HobbyHub documents!"
+    if knowledge_base and any(word in knowledge_base for word in user_input.split()):
+        return "📄 I found something related to that in our HobbyHub documents!"
 
+    # Predefined responses
     elif "hello" in user_input or "hi" in user_input:
         return "Hi there! 👋 Welcome to HobbyHub!"
 
-    elif "hobby" in user_input:
-        return "We have art 🎨, music 🎵, coding 💻, sports ⚽ and more!"
-
     elif "art" in user_input:
-        return "Art is a creative hobby! You can try painting, drawing or digital art."
+        return "🎨 Art is a creative hobby! Try painting, drawing, or digital art."
 
     elif "music" in user_input:
-        return "Music is amazing! You can learn instruments, singing, or music production."
+        return "🎵 Music is amazing! You can learn instruments or music production."
 
     elif "coding" in user_input:
-        return "Coding is a powerful hobby! You can build apps, websites and games."
+        return "💻 Coding lets you build apps, websites, and games!"
 
     elif "sports" in user_input:
-        return "Sports keep you healthy! Football, basketball, swimming and more!"
+        return "⚽ Sports keep you active! Football, basketball, swimming and more!"
 
     elif "help" in user_input:
-        return "Sure! Tell me what hobby you're interested in."
+        return "Sure! Tell me which hobby you're interested in."
 
     elif "bye" in user_input:
         return "Goodbye! Come back soon 😊"
 
     else:
-        return "That sounds interesting! Tell me more about it!"
+        return "That sounds interesting! Tell me more!"
 
 # --------------------------------------------------
-# DISPLAY PREVIOUS MESSAGES
+# DISPLAY CHAT HISTORY
 # --------------------------------------------------
 for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.write(message["content"])
 
 # --------------------------------------------------
-# USER INPUT BOX
+# USER INPUT
 # --------------------------------------------------
 prompt = st.chat_input("Type your message here...")
 
@@ -102,7 +109,7 @@ if prompt:
     with st.chat_message("user"):
         st.write(prompt)
 
-    # Generate response
+    # Generate bot response
     response = chatbot_response(prompt)
 
     # Add assistant message
