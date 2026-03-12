@@ -1,6 +1,5 @@
 import streamlit as st
-import os
-from openai import OpenAI
+import random
 
 # Page settings
 st.set_page_config(page_title="Hobby & Interests Chatbot", page_icon="🎨")
@@ -8,57 +7,87 @@ st.set_page_config(page_title="Hobby & Interests Chatbot", page_icon="🎨")
 st.title("🎨 Hobby & Interests Chatbot")
 st.write("Talk with the bot about hobbies, interests, and fun activities!")
 
-# Get API key safely
-api_key = os.getenv("OPENAI_API_KEY")
-
-# If API key missing, show input box instead of crashing
-if not api_key:
-    api_key = st.text_input("Enter your OpenAI API Key:", type="password")
-
-if not api_key:
-    st.warning("Please enter your OpenAI API key to continue.")
-    st.stop()
-
-# Create OpenAI client
-client = OpenAI(api_key=api_key)
-
-# Initialize chat history
-if "messages" not in st.session_state:
-    st.session_state.messages = [
-        {
-            "role": "system",
-            "content": """You are a friendly chatbot that helps users explore hobbies and interests.
-            Suggest activities like sports, art, music, reading, gaming, outdoor activities,
-            creative hobbies, and technology hobbies. Ask questions to learn about the user."""
-        }
+# Hobby suggestions database
+hobby_responses = {
+    "sports": [
+        "You might enjoy playing football, basketball, or tennis! ⚽",
+        "Sports are great! Have you tried swimming or cycling?",
+        "Joining a local sports team can be fun and social!"
+    ],
+    
+    "art": [
+        "Art is awesome! You could try painting or sketching 🎨",
+        "Digital art and animation are also cool hobbies!",
+        "Watercolor painting is relaxing and creative."
+    ],
+    
+    "music": [
+        "Music is a great hobby! Do you play any instruments? 🎵",
+        "You could try learning guitar, piano, or drums.",
+        "Music production on a computer is also fun."
+    ],
+    
+    "gaming": [
+        "Gaming is popular! What kind of games do you like? 🎮",
+        "You might enjoy game design or streaming games.",
+        "Trying strategy games or puzzle games can be fun."
+    ],
+    
+    "reading": [
+        "Reading is a great hobby 📚",
+        "You might enjoy fantasy, mystery, or science fiction books.",
+        "Joining a book club can make reading more fun."
+    ],
+    
+    "outdoor": [
+        "Outdoor hobbies are great for health 🌳",
+        "You could try hiking, camping, or photography.",
+        "Nature walks and bird watching are relaxing."
     ]
+}
 
-# Display previous messages
-for message in st.session_state.messages[1:]:
+# Default responses
+default_responses = [
+    "That sounds interesting! Tell me more about what you like.",
+    "Cool! What hobbies are you interested in?",
+    "You could try creative hobbies like drawing, music, or photography.",
+    "Do you enjoy indoor hobbies or outdoor activities?"
+]
+
+# Chat history
+if "messages" not in st.session_state:
+    st.session_state.messages = []
+
+# Display chat history
+for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
 
 # Chat input
-prompt = st.chat_input("Ask about hobbies or interests...")
+user_input = st.chat_input("Tell me about your hobbies...")
 
-if prompt:
+if user_input:
     
-    # Add user message
-    st.session_state.messages.append({"role": "user", "content": prompt})
+    # Show user message
+    st.chat_message("user").markdown(user_input)
+    st.session_state.messages.append({"role": "user", "content": user_input})
 
-    with st.chat_message("user"):
-        st.markdown(prompt)
+    user_input_lower = user_input.lower()
 
-    # Get AI response
-    response = client.chat.completions.create(
-        model="gpt-4.1-mini",
-        messages=st.session_state.messages
-    )
+    response = None
 
-    reply = response.choices[0].message.content
+    # Check keywords
+    for keyword in hobby_responses:
+        if keyword in user_input_lower:
+            response = random.choice(hobby_responses[keyword])
+            break
 
-    # Show assistant message
+    # Default response if no keyword
+    if not response:
+        response = random.choice(default_responses)
+
+    # Show bot message
     with st.chat_message("assistant"):
-        st.markdown(reply)
+        st.markdown(response)
 
-    st.session_state.messages.append({"role": "assistant", "content": reply})
+    st.session_state.messages.append({"role": "assistant", "content": response})
