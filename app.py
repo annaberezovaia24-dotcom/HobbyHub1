@@ -1,59 +1,58 @@
 import streamlit as st
+import os
 from openai import OpenAI
 
-# Page title
-st.set_page_config(page_title="Hobby Chatbot", page_icon="🎨")
+# Page settings
+st.set_page_config(page_title="Hobby & Interests Chatbot", page_icon="🎨")
 
 st.title("🎨 Hobby & Interests Chatbot")
 st.write("Talk with the bot about hobbies, interests, and fun activities!")
 
-# Check API key
-if "OPENAI_API_KEY" not in st.secrets:
-    st.error("API key not found. Please add OPENAI_API_KEY to .streamlit/secrets.toml")
+# Get API key safely
+api_key = os.getenv("OPENAI_API_KEY")
+
+# If API key missing, show input box instead of crashing
+if not api_key:
+    api_key = st.text_input("Enter your OpenAI API Key:", type="password")
+
+if not api_key:
+    st.warning("Please enter your OpenAI API key to continue.")
     st.stop()
 
-# Initialize OpenAI client
-client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
+# Create OpenAI client
+client = OpenAI(api_key=api_key)
 
-# Chat history
+# Initialize chat history
 if "messages" not in st.session_state:
-    st.session_state.messages = []
+    st.session_state.messages = [
+        {
+            "role": "system",
+            "content": """You are a friendly chatbot that helps users explore hobbies and interests.
+            Suggest activities like sports, art, music, reading, gaming, outdoor activities,
+            creative hobbies, and technology hobbies. Ask questions to learn about the user."""
+        }
+    ]
 
-# Display previous chat
-for msg in st.session_state.messages:
-    with st.chat_message(msg["role"]):
-        st.markdown(msg["content"])
+# Display previous messages
+for message in st.session_state.messages[1:]:
+    with st.chat_message(message["role"]):
+        st.markdown(message["content"])
 
-# User input
+# Chat input
 prompt = st.chat_input("Ask about hobbies or interests...")
 
 if prompt:
     
-    # Show user message
-    st.chat_message("user").markdown(prompt)
+    # Add user message
     st.session_state.messages.append({"role": "user", "content": prompt})
 
-    # System prompt to guide chatbot
-    system_prompt = """
-    You are a friendly chatbot that helps people explore hobbies and interests.
-    Suggest fun hobbies like:
-    - Sports
-    - Art
-    - Music
-    - Gaming
-    - Reading
-    - Outdoor activities
-    - Technology hobbies
-    Ask questions to learn about the user’s interests and suggest new hobbies.
-    """
+    with st.chat_message("user"):
+        st.markdown(prompt)
 
-    # Create response
+    # Get AI response
     response = client.chat.completions.create(
         model="gpt-4.1-mini",
-        messages=[
-            {"role": "system", "content": system_prompt},
-            *st.session_state.messages
-        ]
+        messages=st.session_state.messages
     )
 
     reply = response.choices[0].message.content
