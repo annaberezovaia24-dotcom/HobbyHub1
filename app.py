@@ -12,38 +12,43 @@ st.set_page_config(
 )
 
 # --------------------------------------------------
-# OPENAI CLIENT
+# OPENAI API
 # --------------------------------------------------
-client = OpenAI(api_key="YOUR_API_KEY_HERE")
+client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 
 # --------------------------------------------------
 # LOGO
 # --------------------------------------------------
 logo_path = "Logo.png"
 
-if os.path.exists(logo_path):
+if os.path.exists(logo_path) and os.path.isfile(logo_path):
     st.image(logo_path, width=180)
 
 st.title("🎨 HobbyHub Chatbot")
 st.caption("Ask me about hobbies like art, music, coding, sports and more!")
 
 # --------------------------------------------------
-# LOAD DOCUMENTS
+# LOAD DOCUMENTS SAFELY
 # --------------------------------------------------
 def load_documents():
 
     knowledge = ""
     folder = "Documents"
 
-    if os.path.exists(folder):
+    if os.path.exists(folder) and os.path.isdir(folder):
 
         for file in os.listdir(folder):
 
-            path = os.path.join(folder, file)
+            file_path = os.path.join(folder, file)
 
-            if file.endswith(".txt"):
-                with open(path, "r", encoding="utf-8") as f:
-                    knowledge += f.read() + "\n"
+            if file.endswith(".txt") and os.path.isfile(file_path):
+
+                try:
+                    with open(file_path, "r", encoding="utf-8") as f:
+                        knowledge += f.read() + "\n"
+
+                except:
+                    pass
 
     return knowledge
 
@@ -51,14 +56,14 @@ def load_documents():
 knowledge_base = load_documents()
 
 # --------------------------------------------------
-# SESSION STATE
+# CHAT HISTORY
 # --------------------------------------------------
 if "messages" not in st.session_state:
 
     st.session_state.messages = [
         {
             "role": "assistant",
-            "content": "Hi there! 👋 Welcome to HobbyHub. Tell me what hobbies you enjoy!"
+            "content": "Hi there! 👋 Welcome to HobbyHub. Tell me about your hobbies!"
         }
     ]
 
@@ -66,6 +71,7 @@ if "messages" not in st.session_state:
 # DISPLAY CHAT
 # --------------------------------------------------
 for message in st.session_state.messages:
+
     with st.chat_message(message["role"]):
         st.write(message["content"])
 
@@ -85,16 +91,15 @@ if prompt:
         st.write(prompt)
 
     # --------------------------------------------------
-    # AI RESPONSE
+    # SYSTEM PROMPT
     # --------------------------------------------------
-
     system_prompt = f"""
-You are HobbyHub, a friendly chatbot that talks with users about hobbies.
+You are HobbyHub, a friendly chatbot that talks about hobbies.
 
-Your goals:
+Rules:
 - Have natural conversations
-- Ask follow-up questions
 - Suggest hobbies
+- Ask follow-up questions
 - Encourage creativity
 - Use the knowledge base if helpful
 
@@ -102,6 +107,9 @@ Knowledge Base:
 {knowledge_base}
 """
 
+    # --------------------------------------------------
+    # AI RESPONSE
+    # --------------------------------------------------
     response = client.chat.completions.create(
         model="gpt-4o-mini",
         messages=[
@@ -112,7 +120,7 @@ Knowledge Base:
 
     reply = response.choices[0].message.content
 
-    # Add assistant message
+    # Save response
     st.session_state.messages.append(
         {"role": "assistant", "content": reply}
     )
