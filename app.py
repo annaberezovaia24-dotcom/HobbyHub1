@@ -1,117 +1,55 @@
 import streamlit as st
-import os
 from openai import OpenAI
 
-# --------------------------------------------------
-# PAGE CONFIG
-# --------------------------------------------------
-st.set_page_config(
-    page_title="HobbyHub Chatbot",
-    page_icon="🎨",
-    layout="centered"
-)
+# Page title
+st.set_page_config(page_title="Hobby Chatbot", page_icon="🎨")
 
-# --------------------------------------------------
-# OPENAI API
-# --------------------------------------------------
+st.title("🎨 Hobby & Interests Chatbot")
+st.write("Talk with the bot about hobbies, interests, and fun activities!")
+
+# Check API key
+if "OPENAI_API_KEY" not in st.secrets:
+    st.error("API key not found. Please add OPENAI_API_KEY to .streamlit/secrets.toml")
+    st.stop()
+
+# Initialize OpenAI client
 client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 
-# --------------------------------------------------
-# LOGO
-# --------------------------------------------------
-logo_path = "Logo.png"
-
-if os.path.exists(logo_path) and os.path.isfile(logo_path):
-    st.image(logo_path, width=180)
-
-st.title("🎨 HobbyHub Chatbot")
-st.caption("Ask me about hobbies like art, music, coding, sports and more!")
-
-# --------------------------------------------------
-# LOAD DOCUMENTS SAFELY
-# --------------------------------------------------
-def load_documents():
-
-    knowledge = ""
-    folder = "Documents"
-
-    if os.path.exists(folder) and os.path.isdir(folder):
-
-        for file in os.listdir(folder):
-
-            file_path = os.path.join(folder, file)
-
-            if file.endswith(".txt") and os.path.isfile(file_path):
-
-                try:
-                    with open(file_path, "r", encoding="utf-8") as f:
-                        knowledge += f.read() + "\n"
-
-                except:
-                    pass
-
-    return knowledge
-
-
-knowledge_base = load_documents()
-
-# --------------------------------------------------
-# CHAT HISTORY
-# --------------------------------------------------
+# Chat history
 if "messages" not in st.session_state:
+    st.session_state.messages = []
 
-    st.session_state.messages = [
-        {
-            "role": "assistant",
-            "content": "Hi there! 👋 Welcome to HobbyHub. Tell me about your hobbies!"
-        }
-    ]
+# Display previous chat
+for msg in st.session_state.messages:
+    with st.chat_message(msg["role"]):
+        st.markdown(msg["content"])
 
-# --------------------------------------------------
-# DISPLAY CHAT
-# --------------------------------------------------
-for message in st.session_state.messages:
-
-    with st.chat_message(message["role"]):
-        st.write(message["content"])
-
-# --------------------------------------------------
-# USER INPUT
-# --------------------------------------------------
-prompt = st.chat_input("Type your message here...")
+# User input
+prompt = st.chat_input("Ask about hobbies or interests...")
 
 if prompt:
+    
+    # Show user message
+    st.chat_message("user").markdown(prompt)
+    st.session_state.messages.append({"role": "user", "content": prompt})
 
-    # Add user message
-    st.session_state.messages.append(
-        {"role": "user", "content": prompt}
-    )
+    # System prompt to guide chatbot
+    system_prompt = """
+    You are a friendly chatbot that helps people explore hobbies and interests.
+    Suggest fun hobbies like:
+    - Sports
+    - Art
+    - Music
+    - Gaming
+    - Reading
+    - Outdoor activities
+    - Technology hobbies
+    Ask questions to learn about the user’s interests and suggest new hobbies.
+    """
 
-    with st.chat_message("user"):
-        st.write(prompt)
-
-    # --------------------------------------------------
-    # SYSTEM PROMPT
-    # --------------------------------------------------
-    system_prompt = f"""
-You are HobbyHub, a friendly chatbot that talks about hobbies.
-
-Rules:
-- Have natural conversations
-- Suggest hobbies
-- Ask follow-up questions
-- Encourage creativity
-- Use the knowledge base if helpful
-
-Knowledge Base:
-{knowledge_base}
-"""
-
-    # --------------------------------------------------
-    # AI RESPONSE
-    # --------------------------------------------------
+    # Create response
     response = client.chat.completions.create(
-        model="gpt-4o-mini",
+        model="gpt-4.1-mini",
         messages=[
             {"role": "system", "content": system_prompt},
             *st.session_state.messages
@@ -120,10 +58,8 @@ Knowledge Base:
 
     reply = response.choices[0].message.content
 
-    # Save response
-    st.session_state.messages.append(
-        {"role": "assistant", "content": reply}
-    )
-
+    # Show assistant message
     with st.chat_message("assistant"):
-        st.write(reply)
+        st.markdown(reply)
+
+    st.session_state.messages.append({"role": "assistant", "content": reply})
