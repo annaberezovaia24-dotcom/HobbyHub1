@@ -6,22 +6,33 @@ st.set_page_config(page_title="Hobby Chatbot", page_icon="🎨")
 st.title("🎨 Hobby & Interests Chatbot")
 st.write("Let's chat and discover hobbies you'll enjoy!")
 
-# Hobby system
+# Hobby system (EXPANDED)
 hobby_data = {
+    "sports": {
+        "keywords": ["cycling", "bike", "tennis", "football", "basketball"],
+        "responses": [
+            "That's awesome! Staying active is great 🚴",
+            "Nice! Sports are really fun and healthy 💪"
+        ],
+        "suggestions": ["running", "swimming", "hiking"]
+    },
+
+    "science": {
+        "keywords": ["science", "experiment", "chemistry", "physics"],
+        "responses": [
+            "That's really interesting! Science is amazing 🔬",
+            "Nice! Learning science can be really exciting 🧪"
+        ],
+        "suggestions": ["home experiments", "robotics", "coding"]
+    },
+
     "music": {
-        "keywords": ["music", "guitar", "piano", "sing"],
+        "keywords": ["music", "guitar", "piano"],
         "responses": [
             "That's awesome! Music is a great hobby 🎵",
             "Nice! Playing music is really fun 🎸"
         ],
-        "suggestions": ["guitar", "piano", "drums", "ukulele"],
-        "questions": {
-            "instrument": [
-                "You could try **guitar** — it's very popular and beginner-friendly 🎸",
-                "Piano is a great choice if you like melodies 🎹",
-                "Drums are fun if you enjoy rhythm 🥁"
-            ]
-        }
+        "suggestions": ["guitar", "piano", "drums"]
     },
 
     "drawing": {
@@ -31,15 +42,6 @@ hobby_data = {
             "Nice! Art is a great way to express yourself ✏️"
         ],
         "suggestions": ["digital art", "painting", "animation"]
-    },
-
-    "sports": {
-        "keywords": ["tennis", "football", "basketball"],
-        "responses": [
-            "Nice! Staying active is great 💪",
-            "That's awesome! Sports are really fun!"
-        ],
-        "suggestions": ["running", "cycling", "swimming"]
     }
 }
 
@@ -82,61 +84,63 @@ if user_input:
     if any(word in text for word in ["hi", "hello", "hey"]):
         response = random.choice(greetings)
 
-    # ✅ 2. Detect topic (hobby)
+    # ✅ 2. Detect hobby/topic
     for hobby, data in hobby_data.items():
         for keyword in data["keywords"]:
             if keyword in text:
                 st.session_state.last_topic = hobby
                 detected = True
 
-                response = random.choice(data["responses"])
+                base = random.choice(data["responses"])
+                suggestion = random.choice(data["suggestions"])
+
+                response = f"{base}\n\n💡 You could also try **{suggestion}**!"
                 break
         if detected:
             break
 
-    # ✅ 3. Answer QUESTIONS
-    if "what" in text or "which" in text or "how" in text:
+    # ✅ 3. Handle follow-up sentences (IMPORTANT FIX)
+    if not response and st.session_state.last_topic:
 
         topic = st.session_state.last_topic
 
-        # If asking about music instruments
-        if topic == "music" and "instrument" in text:
-            response = random.choice(hobby_data["music"]["questions"]["instrument"])
+        # Specific logic for science
+        if topic == "science" and ("experiment" in text or "make" in text):
+            response = random.choice([
+                "That's awesome! Doing experiments is the best part of science 🧪",
+                "Nice! Experiments make science really fun and hands-on 🔬"
+            ]) + "\n\n💡 You could try some simple home experiments!"
 
-        elif topic:
-            # general answer
-            suggestion = random.choice(hobby_data[topic]["suggestions"])
-            response = f"Good question! 😊 You could try **{suggestion}**. It’s a great option!"
+        # Specific logic for sports
+        elif topic == "sports":
+            response = random.choice([
+                "Nice! Staying active is great for your health 💪",
+                "That sounds fun! Do you do it often?"
+            ]) + "\n\n💡 You could also try hiking or swimming!"
 
+        # General topic follow-up
         else:
-            response = "Good question! 😊 Can you tell me what hobbies you're interested in?"
-
-    # ✅ 4. Suggest ideas
-    if not response and ("suggest" in text or "idea" in text):
-        topic = st.session_state.last_topic
-
-        if topic:
             suggestion = random.choice(hobby_data[topic]["suggestions"])
-            response = f"You could try **{suggestion}**! What do you think?"
+            response = f"That’s really interesting! 😊\n\n💡 You might also enjoy **{suggestion}**!"
+
+    # ✅ 4. Questions
+    if not response and ("what" in text or "how" in text or "which" in text):
+        if st.session_state.last_topic:
+            topic = st.session_state.last_topic
+            suggestion = random.choice(hobby_data[topic]["suggestions"])
+            response = f"Good question! 😊 You could try **{suggestion}**."
         else:
-            response = "You could try drawing, music, or sports! What sounds fun?"
+            response = "Good question! 😊 What hobbies are you interested in?"
 
-    # ✅ 5. If hobby detected (normal reply + suggestion)
-    if not response and detected:
-        topic = st.session_state.last_topic
-        suggestion = random.choice(hobby_data[topic]["suggestions"])
-
-        response = f"{random.choice(hobby_data[topic]['responses'])}\n\n💡 You could also try **{suggestion}**!"
-
-    # ✅ 6. Fallback
+    # ✅ 5. Fallback (LESS GENERIC NOW)
     if not response:
         response = random.choice([
-            "That sounds interesting! 😊 Tell me more!",
-            "Nice! What do you enjoy most about it?",
-            "Cool! Tell me more about that!"
+            "That sounds fun! 😊 What do you like most about it?",
+            "Nice! How did you get into that?",
+            "Cool! What part do you enjoy the most?"
         ])
 
-    # 🚫 Avoid repeating
+    # 🚫 Prevent repeating
     if response == st.session_state.last_response:
         response += "\n\nTell me more! 😊"
 
@@ -147,3 +151,4 @@ if user_input:
         st.write(response)
 
     st.session_state.messages.append({"role": "assistant", "content": response})
+    
