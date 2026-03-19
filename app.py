@@ -4,42 +4,17 @@ import random
 st.set_page_config(page_title="Hobby Chatbot", page_icon="🎨")
 
 st.title("🎨 Hobby & Interests Chatbot")
-st.write("Let's chat about your hobbies and discover new ones!")
+st.write("Let's chat and discover hobbies you'll enjoy!")
 
-# Hobby detection with better keywords
+# Hobby system
 hobby_data = {
     "drawing": {
         "keywords": ["draw", "drawing", "sketch"],
-        "responses": [
-            "That’s awesome! Drawing is a great creative hobby 🎨",
-            "Nice! Drawing helps you express your imagination ✏️"
-        ],
-        "followups": [
-            "Do you like drawing people or characters?",
-            "What do you enjoy drawing the most?",
-            "Do you draw digitally or on paper?"
-        ],
-        "suggestions": [
-            "You could try digital art or animation!",
-            "Maybe explore character design or comics!",
-            "You might enjoy painting or graphic design too!"
-        ]
+        "suggestions": ["digital art", "animation", "painting", "character design"],
     },
-
     "sports": {
-        "keywords": ["tennis", "football", "basketball", "swim", "swimming"],
-        "responses": [
-            "That’s great! Sports are really good for you 💪",
-            "Nice! Staying active is always a good thing!"
-        ],
-        "followups": [
-            "Do you play just for fun or competitively?",
-            "How often do you practice?",
-        ],
-        "suggestions": [
-            "You could try other sports like badminton or running!",
-            "Maybe join a local team or club!"
-        ]
+        "keywords": ["tennis", "football", "basketball"],
+        "suggestions": ["running", "badminton", "cycling", "swimming"],
     }
 }
 
@@ -49,6 +24,9 @@ if "messages" not in st.session_state:
 
 if "user_hobbies" not in st.session_state:
     st.session_state.user_hobbies = []
+
+if "last_suggestion" not in st.session_state:
+    st.session_state.last_suggestion = None
 
 # Show chat
 for msg in st.session_state.messages:
@@ -68,39 +46,62 @@ if user_input:
     response = ""
     detected = False
 
-    # Detect hobbies
-    for hobby, data in hobby_data.items():
-        for keyword in data["keywords"]:
-            if keyword in text:
-                detected = True
-                st.session_state.user_hobbies.append(hobby)
+    # 🔹 1. If user follows a suggestion
+    if st.session_state.last_suggestion:
+        if st.session_state.last_suggestion in text:
+            response = f"Great choice! 😊 {st.session_state.last_suggestion.capitalize()} is really fun!\n\n"
 
-                # Build smart response
-                response = (
-                    random.choice(data["responses"]) + " " +
-                    random.choice(data["followups"]) + "\n\n" +
-                    "💡 Suggestion: " + random.choice(data["suggestions"])
-                )
+            # Continue conversation based on suggestion
+            if st.session_state.last_suggestion == "running":
+                response += random.choice([
+                    "Do you prefer running outdoors or on a treadmill?",
+                    "Running is great for fitness! Do you run often?"
+                ])
+            elif st.session_state.last_suggestion == "digital art":
+                response += "Digital art is awesome! Do you use any apps or draw on paper?"
+
+            # Clear suggestion after using it
+            st.session_state.last_suggestion = None
+
+    # 🔹 2. Detect hobbies
+    if not response:
+        for hobby, data in hobby_data.items():
+            for keyword in data["keywords"]:
+                if keyword in text:
+                    detected = True
+                    st.session_state.user_hobbies.append(hobby)
+
+                    suggestion = random.choice(data["suggestions"])
+                    st.session_state.last_suggestion = suggestion
+
+                    response = (
+                        f"Nice! {hobby.capitalize()} is a great hobby 😊\n\n"
+                        f"💡 You might also like: **{suggestion}**\n\n"
+                        f"What do you think about trying it?"
+                    )
+                    break
+            if detected:
                 break
-        if detected:
-            break
 
-    # If user asks for suggestions
-    if not detected and ("suggest" in text or "idea" in text):
+    # 🔹 3. If user asks for suggestions
+    if not response and ("suggest" in text or "idea" in text):
         if st.session_state.user_hobbies:
             hobby = random.choice(st.session_state.user_hobbies)
-            response = f"Since you like {hobby}, here’s an idea: " + \
-                       random.choice(hobby_data[hobby]["suggestions"])
+            suggestion = random.choice(hobby_data[hobby]["suggestions"])
+
+            st.session_state.last_suggestion = suggestion
+
+            response = f"Based on what you like, you could try **{suggestion}**! What do you think?"
         else:
-            response = "You could try drawing, sports, music, or gaming! What sounds interesting?"
+            response = "You could try drawing, sports, or music! What sounds fun to you?"
 
-    # Greeting
-    elif not detected and ("hello" in text or "hi" in text):
-        response = "Hi! 😊 Tell me what hobbies you enjoy!"
+    # 🔹 4. Greeting
+    if not response and ("hello" in text or "hi" in text):
+        response = "Hi! 😊 Tell me about your hobbies!"
 
-    # Fallback (IMPORTANT FIX)
-    elif not detected:
-        response = "That sounds really interesting! 😊 Can you tell me more about what you like specifically?"
+    # 🔹 5. Fallback
+    if not response:
+        response = "That sounds interesting! Tell me more 😊"
 
     # Show response
     with st.chat_message("assistant"):
