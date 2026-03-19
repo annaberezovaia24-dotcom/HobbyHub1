@@ -16,25 +16,14 @@ hobby_data = {
         ],
         "suggestions": ["running", "swimming", "badminton", "hiking"]
     },
-
     "science": {
-        "keywords": ["science", "experiment", "chemistry", "physics"],
+        "keywords": ["science", "experiment"],
         "responses": [
             "That's really interesting! Science is amazing 🔬",
-            "Nice! Learning science can be exciting 🧪"
+            "Nice! Learning science is exciting 🧪"
         ],
         "suggestions": ["home experiments", "robotics", "coding"]
     },
-
-    "music": {
-        "keywords": ["music", "guitar", "piano"],
-        "responses": [
-            "That's awesome! Music is a great hobby 🎵",
-            "Nice! Playing music is really fun 🎸"
-        ],
-        "suggestions": ["guitar", "piano", "drums"]
-    },
-
     "drawing": {
         "keywords": ["draw", "drawing"],
         "responses": [
@@ -45,11 +34,9 @@ hobby_data = {
     }
 }
 
-# Simple knowledge base (NEW ✨)
+# Knowledge base
 knowledge = {
-    "coding": "Coding means writing instructions for a computer so it can do tasks. It’s used to build apps, games, and websites 💻",
-    "robotics": "Robotics is about building and programming robots 🤖",
-    "physics": "Physics is the study of how things move and work in the universe 🌍"
+    "coding": "Coding means writing instructions for a computer so it can do tasks 💻"
 }
 
 # Greetings
@@ -65,6 +52,9 @@ if "messages" not in st.session_state:
 
 if "last_topic" not in st.session_state:
     st.session_state.last_topic = None
+
+if "last_suggestion" not in st.session_state:
+    st.session_state.last_suggestion = None
 
 if "used_suggestions" not in st.session_state:
     st.session_state.used_suggestions = []
@@ -94,16 +84,38 @@ if user_input:
     if any(word in text for word in ["hi", "hello", "hey"]):
         response = random.choice(greetings)
 
-    # ✅ 2. "What is ..." questions (NEW FIX)
+    # ✅ 2. NEGATIVE FEEDBACK (NEW 🔥)
+    elif any(word in text for word in ["hate", "don't like", "do not like", "dislike"]):
+        topic = st.session_state.last_topic
+
+        if topic:
+            # remove last suggestion
+            if st.session_state.last_suggestion:
+                st.session_state.used_suggestions.append(st.session_state.last_suggestion)
+
+            # pick new suggestion
+            available = [s for s in hobby_data[topic]["suggestions"]
+                         if s not in st.session_state.used_suggestions]
+
+            if not available:
+                available = hobby_data[topic]["suggestions"]
+
+            new_suggestion = random.choice(available)
+            st.session_state.last_suggestion = new_suggestion
+
+            response = (
+                "No problem! 😊 Not everyone likes that.\n\n"
+                f"💡 Maybe you could try **{new_suggestion}** instead!"
+            )
+        else:
+            response = "Got it! 😊 What kinds of hobbies do you prefer?"
+
+    # ✅ 3. "What is ..." question
     elif text.startswith("what is"):
         topic = text.replace("what is", "").strip()
+        response = knowledge.get(topic, f"{topic.capitalize()} is something interesting to explore! 😊")
 
-        if topic in knowledge:
-            response = knowledge[topic]
-        else:
-            response = f"{topic.capitalize()} is something interesting! 😊 You can explore it as a hobby!"
-
-    # ✅ 3. Detect hobby
+    # ✅ 4. Detect hobby
     for hobby, data in hobby_data.items():
         for keyword in data["keywords"]:
             if keyword in text:
@@ -112,41 +124,34 @@ if user_input:
 
                 base = random.choice(data["responses"])
 
-                # Avoid repeating suggestions
-                available = [s for s in data["suggestions"] if s not in st.session_state.used_suggestions]
+                available = [s for s in data["suggestions"]
+                             if s not in st.session_state.used_suggestions]
+
                 if not available:
                     available = data["suggestions"]
 
                 suggestion = random.choice(available)
+
                 st.session_state.used_suggestions.append(suggestion)
+                st.session_state.last_suggestion = suggestion
 
                 response = f"{base}\n\n💡 You could also try **{suggestion}**!"
                 break
         if detected:
             break
 
-    # ✅ 4. Follow-up logic
+    # ✅ 5. Follow-up
     if not response and st.session_state.last_topic:
         topic = st.session_state.last_topic
-
         suggestion = random.choice(hobby_data[topic]["suggestions"])
         response = f"That sounds great! 😊\n\n💡 You might also enjoy **{suggestion}**!"
-
-    # ✅ 5. Questions
-    if not response and ("what" in text or "how" in text or "which" in text):
-        if st.session_state.last_topic:
-            topic = st.session_state.last_topic
-            suggestion = random.choice(hobby_data[topic]["suggestions"])
-            response = f"Good question! 😊 You could try **{suggestion}**!"
-        else:
-            response = "Good question! 😊 What hobbies are you interested in?"
 
     # ✅ 6. Fallback
     if not response:
         response = random.choice([
-            "That sounds fun! 😊 What do you enjoy most about it?",
-            "Nice! How did you get into that?",
-            "Cool! Tell me more about that!"
+            "That sounds fun! 😊 Tell me more!",
+            "Nice! What do you enjoy most about it?",
+            "Cool! How did you get into that?"
         ])
 
     # 🚫 Avoid repeating
