@@ -8,13 +8,29 @@ st.write("Let's chat and discover hobbies you'll enjoy!")
 
 # Hobby system
 hobby_data = {
-    "drawing": {
-        "keywords": ["draw", "drawing", "sketch"],
-        "suggestions": ["digital art", "animation", "painting", "character design"],
+    "swimming": {
+        "keywords": ["swim", "swimming"],
+        "responses": [
+            "Swimming is awesome 🌊",
+            "Nice! Swimming is great exercise 💪"
+        ],
+        "suggestions": ["diving", "water polo", "surfing"]
     },
-    "sports": {
-        "keywords": ["tennis", "football", "basketball"],
-        "suggestions": ["running", "badminton", "cycling", "swimming"],
+    "music": {
+        "keywords": ["guitar", "music", "sing"],
+        "responses": [
+            "That's cool! Music is a great hobby 🎵",
+            "Nice! Playing music is really fun 🎸"
+        ],
+        "suggestions": ["learning piano", "writing songs", "music production"]
+    },
+    "drawing": {
+        "keywords": ["draw", "drawing"],
+        "responses": [
+            "Drawing is very creative 🎨",
+            "Nice! Art is a great way to express yourself ✏️"
+        ],
+        "suggestions": ["digital art", "painting", "animation"]
     }
 }
 
@@ -22,11 +38,8 @@ hobby_data = {
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-if "user_hobbies" not in st.session_state:
-    st.session_state.user_hobbies = []
-
-if "last_suggestion" not in st.session_state:
-    st.session_state.last_suggestion = None
+if "last_response" not in st.session_state:
+    st.session_state.last_response = ""
 
 # Show chat
 for msg in st.session_state.messages:
@@ -46,62 +59,35 @@ if user_input:
     response = ""
     detected = False
 
-    # 🔹 1. If user follows a suggestion
-    if st.session_state.last_suggestion:
-        if st.session_state.last_suggestion in text:
-            response = f"Great choice! 😊 {st.session_state.last_suggestion.capitalize()} is really fun!\n\n"
+    # Detect hobbies
+    for hobby, data in hobby_data.items():
+        for keyword in data["keywords"]:
+            if keyword in text:
+                detected = True
 
-            # Continue conversation based on suggestion
-            if st.session_state.last_suggestion == "running":
-                response += random.choice([
-                    "Do you prefer running outdoors or on a treadmill?",
-                    "Running is great for fitness! Do you run often?"
-                ])
-            elif st.session_state.last_suggestion == "digital art":
-                response += "Digital art is awesome! Do you use any apps or draw on paper?"
+                base = random.choice(data["responses"])
+                suggestion = random.choice(data["suggestions"])
 
-            # Clear suggestion after using it
-            st.session_state.last_suggestion = None
+                response = f"{base} 😊\n\n💡 You could also try **{suggestion}**!"
 
-    # 🔹 2. Detect hobbies
-    if not response:
-        for hobby, data in hobby_data.items():
-            for keyword in data["keywords"]:
-                if keyword in text:
-                    detected = True
-                    st.session_state.user_hobbies.append(hobby)
-
-                    suggestion = random.choice(data["suggestions"])
-                    st.session_state.last_suggestion = suggestion
-
-                    response = (
-                        f"Nice! {hobby.capitalize()} is a great hobby 😊\n\n"
-                        f"💡 You might also like: **{suggestion}**\n\n"
-                        f"What do you think about trying it?"
-                    )
-                    break
-            if detected:
                 break
+        if detected:
+            break
 
-    # 🔹 3. If user asks for suggestions
-    if not response and ("suggest" in text or "idea" in text):
-        if st.session_state.user_hobbies:
-            hobby = random.choice(st.session_state.user_hobbies)
-            suggestion = random.choice(hobby_data[hobby]["suggestions"])
+    # If nothing detected → use varied fallback
+    if not detected:
+        fallback_options = [
+            "That sounds fun! 😊 What do you enjoy most about it?",
+            "Nice! Tell me more about that!",
+            "Cool! What got you interested in that hobby?"
+        ]
+        response = random.choice(fallback_options)
 
-            st.session_state.last_suggestion = suggestion
+    # 🚫 Prevent repeating same response
+    if response == st.session_state.last_response:
+        response += "\n\nTell me more! 😊"
 
-            response = f"Based on what you like, you could try **{suggestion}**! What do you think?"
-        else:
-            response = "You could try drawing, sports, or music! What sounds fun to you?"
-
-    # 🔹 4. Greeting
-    if not response and ("hello" in text or "hi" in text):
-        response = "Hi! 😊 Tell me about your hobbies!"
-
-    # 🔹 5. Fallback
-    if not response:
-        response = "That sounds interesting! Tell me more 😊"
+    st.session_state.last_response = response
 
     # Show response
     with st.chat_message("assistant"):
