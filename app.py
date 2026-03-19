@@ -1,35 +1,34 @@
 import streamlit as st
+import random
 
 st.set_page_config(page_title="Hobby Chatbot", page_icon="🎨")
 
 st.title("🎨 Hobby & Interests Chatbot")
-st.write("Let's talk about hobbies and discover new interests!")
+st.write("Let's chat about your hobbies and discover new ones!")
 
-# Hobby knowledge base
+# Expanded hobby database
 hobby_data = {
-    "reading": {
-        "response": "Reading is a great hobby 📚. What type of books do you enjoy?",
-        "suggestion": "You might also enjoy writing stories or joining a book club."
-    },
-    "tennis": {
-        "response": "Tennis is an awesome sport 🎾. Do you usually play for fun or competitively?",
-        "suggestion": "You might also enjoy badminton or table tennis."
-    },
-    "drawing": {
-        "response": "Drawing is very creative ✏️. Do you prefer sketching people, landscapes, or cartoons?",
-        "suggestion": "You might enjoy digital art or painting too."
-    },
-    "gaming": {
-        "response": "Gaming is fun 🎮. What kind of games do you usually play?",
-        "suggestion": "You could also try game design or streaming."
-    },
-    "music": {
-        "response": "Music is a great hobby 🎵. Do you play an instrument or just enjoy listening?",
-        "suggestion": "Learning guitar or piano could be fun."
-    }
+    "drawing": ["drawing", "sketching", "art"],
+    "swimming": ["swim", "swimming"],
+    "tennis": ["tennis"],
+    "reading": ["read", "books", "reading"],
+    "gaming": ["gaming", "games"],
+    "music": ["music", "singing"],
+    "sports": ["football", "basketball", "sports"],
 }
 
-# Memory
+# Suggestions
+suggestions = {
+    "drawing": "You could try digital art or painting 🎨",
+    "swimming": "You might enjoy water polo or diving 🌊",
+    "tennis": "You could also try badminton or table tennis 🎾",
+    "reading": "You might enjoy writing your own stories 📚",
+    "gaming": "Maybe try game design or streaming 🎮",
+    "music": "Learning an instrument could be fun 🎵",
+    "sports": "You could explore different team sports ⚽"
+}
+
+# Conversation memory
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
@@ -41,7 +40,7 @@ for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
         st.write(msg["content"])
 
-# User input
+# Input
 user_input = st.chat_input("Tell me about your hobbies...")
 
 if user_input:
@@ -52,40 +51,60 @@ if user_input:
 
     text = user_input.lower()
 
-    found_hobbies = []
+    found = []
 
-    # Detect hobbies in message
-    for hobby in hobby_data:
-        if hobby in text:
-            found_hobbies.append(hobby)
+    # Detect hobbies
+    for hobby, keywords in hobby_data.items():
+        for word in keywords:
+            if word in text:
+                found.append(hobby)
 
     response = ""
 
-    # If hobbies found
-    if found_hobbies:
-        st.session_state.user_hobbies.extend(found_hobbies)
+    # CASE 1: User mentions hobbies
+    if found:
+        st.session_state.user_hobbies.extend(found)
 
         responses = []
-        for hobby in found_hobbies:
-            responses.append(hobby_data[hobby]["response"])
+        for hobby in found:
+            responses.append(f"{hobby.capitalize()} sounds fun! 😊")
 
-        response = " ".join(responses)
+        follow_up = random.choice([
+            "What do you enjoy most about it?",
+            "How often do you do it?",
+            "How did you get into it?"
+        ])
 
-    # If user talks about free time
-    elif "free time" in text:
+        response = " ".join(responses) + " " + follow_up
+
+    # CASE 2: User asks for suggestions
+    elif "suggest" in text or "recommend" in text:
         if st.session_state.user_hobbies:
-            response = f"Earlier you mentioned you enjoy {', '.join(st.session_state.user_hobbies)}. What do you like most about it?"
+            hobby = random.choice(st.session_state.user_hobbies)
+            response = suggestions.get(hobby, "You could try something creative or active!")
         else:
-            response = "What hobbies do you usually enjoy in your free time?"
+            response = random.choice([
+                "You could try drawing, sports, or music!",
+                "Maybe explore gaming, reading, or outdoor activities!",
+                "How about learning a new skill like coding or photography?"
+            ])
 
-    # Greetings
+    # CASE 3: Greeting
     elif "hello" in text or "hi" in text:
-        response = "Hi there! 😊 What hobbies do you enjoy?"
+        response = random.choice([
+            "Hi there! 😊 What hobbies do you enjoy?",
+            "Hello! 👋 Tell me about what you like to do!",
+        ])
 
+    # CASE 4: General fallback
     else:
-        response = "That sounds interesting! Can you tell me more about your hobbies?"
+        response = random.choice([
+            "That sounds interesting! Tell me more 😊",
+            "Nice! What else do you enjoy?",
+            "Cool! Do you have any other hobbies?"
+        ])
 
-    # Show bot reply
+    # Show response
     with st.chat_message("assistant"):
         st.write(response)
 
