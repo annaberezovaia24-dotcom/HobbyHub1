@@ -30,6 +30,9 @@ hobby_data = {
     }
 }
 
+# Instrument suggestions
+instruments = ["guitar", "piano", "drums", "ukulele", "violin"]
+
 # Greetings
 greetings = [
     "Hi there! 😊 What hobbies do you enjoy?",
@@ -72,7 +75,7 @@ if user_input:
     if any(word in text for word in ["hi", "hello", "hey"]):
         response = random.choice(greetings)
 
-    # ✅ 2. User asks for suggestions
+    # ✅ 2. Ask for suggestions
     elif any(phrase in text for phrase in [
         "suggest", "recommend", "give me ideas", "any hobby"
     ]):
@@ -94,7 +97,7 @@ if user_input:
 
         response += "\nDo any of these sound interesting?"
 
-    # ✅ 3. MORE IDEAS (NEW FEATURE)
+    # ✅ 3. MORE IDEAS
     elif any(phrase in text for phrase in [
         "more", "more ideas", "something else", "another", "anything else"
     ]):
@@ -157,7 +160,31 @@ if user_input:
         else:
             response = "No problem 😊 What kind of hobbies do you prefer?"
 
-    # ✅ 5. Detect hobby
+    # ✅ 5. Instrument suggestions (NEW)
+    elif "instrument" in text:
+        available = [
+            i for i in instruments
+            if i not in st.session_state.last_suggestions
+        ]
+
+        if not available:
+            available = instruments
+
+        suggestions = random.sample(available, min(3, len(available)))
+        st.session_state.last_suggestions = suggestions
+        st.session_state.last_category = "music"
+
+        response = (
+            "Great question! 🎵 Choosing an instrument is fun!\n\n"
+            "💡 You could try:\n"
+        )
+
+        for s in suggestions:
+            response += f"- **{s}**\n"
+
+        response += "\nWhich one sounds interesting to you?"
+
+    # ✅ 6. Detect hobby
     else:
         for category, data in hobby_data.items():
             for keyword in data["keywords"]:
@@ -190,7 +217,7 @@ if user_input:
             if detected:
                 break
 
-    # ✅ 6. Fallback
+    # ✅ 7. Fallback
     if not response:
         response = random.choice([
             "That sounds interesting! 😊 Tell me more!",
