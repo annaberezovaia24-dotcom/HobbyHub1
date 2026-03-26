@@ -4,47 +4,41 @@ import random
 st.set_page_config(page_title="Hobby Chatbot", page_icon="🎨")
 
 st.title("🎨 Hobby & Interests Chatbot")
-st.write("Let's chat and discover hobbies you'll enjoy!")
+st.write("Tell me what you like, and I'll suggest similar hobbies!")
 
-# Hobby system
+# Hobby categories
 hobby_data = {
     "sports": {
         "keywords": ["tennis", "football", "basketball", "cycling", "padel"],
-        "responses": [
-            "That's awesome! Sports are really fun 💪",
-            "Nice! Staying active is great 🚴"
-        ],
-        "suggestions": ["running", "swimming", "badminton", "hiking"]
+        "similar": ["badminton", "running", "swimming", "table tennis", "volleyball"],
+        "response": "Nice! You seem to enjoy sports 💪"
     },
+
+    "creative": {
+        "keywords": ["draw", "drawing", "painting"],
+        "similar": ["digital art", "sketching", "animation", "graphic design"],
+        "response": "That's awesome! You're creative 🎨"
+    },
+
     "science": {
-        "keywords": ["science", "experiment"],
-        "responses": [
-            "That's really interesting! Science is amazing 🔬",
-            "Nice! Science is exciting 🧪"
-        ],
-        "suggestions": ["robotics", "coding", "home experiments"]
+        "keywords": ["science", "experiment", "physics", "chemistry"],
+        "similar": ["robotics", "coding", "astronomy", "engineering projects"],
+        "response": "Very interesting! You like learning 🔬"
+    },
+
+    "music": {
+        "keywords": ["music", "guitar", "piano", "sing"],
+        "similar": ["drums", "ukulele", "music production", "songwriting"],
+        "response": "Nice! Music is a great hobby 🎵"
     }
 }
-
-# Greetings
-greetings = [
-    "Hi there! 😊 What hobbies do you enjoy?",
-    "Hello! 👋 Tell me about your hobbies!",
-    "Hey! 😄 What do you like to do in your free time?"
-]
 
 # Memory
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-if "last_topic" not in st.session_state:
-    st.session_state.last_topic = None
-
-if "last_suggestion" not in st.session_state:
-    st.session_state.last_suggestion = None
-
-if "rejected" not in st.session_state:
-    st.session_state.rejected = []
+if "used_suggestions" not in st.session_state:
+    st.session_state.used_suggestions = []
 
 # Show chat
 for msg in st.session_state.messages:
@@ -62,67 +56,49 @@ if user_input:
 
     text = user_input.lower()
     response = ""
+    detected = False
 
-    # ✅ 1. Greeting
-    if any(word in text for word in ["hi", "hello", "hey"]):
-        response = random.choice(greetings)
+    # Detect hobby category
+    for category, data in hobby_data.items():
+        for keyword in data["keywords"]:
+            if keyword in text:
+                detected = True
 
-    # ✅ 2. NEGATIVE FEEDBACK (FIXED 🔥)
-    elif any(word in text for word in ["don't like", "do not like", "hate", "dislike"]):
+                # Avoid repeating suggestions
+                available = [
+                    h for h in data["similar"]
+                    if h not in st.session_state.used_suggestions
+                ]
 
-        topic = st.session_state.last_topic
+                if not available:
+                    available = data["similar"]
 
-        if topic:
-            # remember rejected suggestion
-            if st.session_state.last_suggestion:
-                st.session_state.rejected.append(st.session_state.last_suggestion)
+                # Pick 2-3 similar hobbies
+                suggestions = random.sample(available, min(3, len(available)))
 
-            # choose NEW suggestion (not rejected)
-            available = [
-                s for s in hobby_data[topic]["suggestions"]
-                if s not in st.session_state.rejected
-            ]
+                # Save used
+                st.session_state.used_suggestions.extend(suggestions)
 
-            # if all rejected → reset
-            if not available:
-                st.session_state.rejected = []
-                available = hobby_data[topic]["suggestions"]
+                response = (
+                    f"{data['response']} 😊\n\n"
+                    f"💡 You might also enjoy:\n"
+                )
 
-            new_suggestion = random.choice(available)
-            st.session_state.last_suggestion = new_suggestion
+                for s in suggestions:
+                    response += f"- **{s}**\n"
 
-            response = (
-                "No worries! 😊 Not everyone likes that.\n\n"
-                f"💡 How about trying **{new_suggestion}** instead?"
-            )
+                response += "\nWhich one sounds interesting to you?"
 
-        else:
-            response = "Got it! 😊 Tell me what you enjoy!"
-
-    # ✅ 3. Detect hobby
-    else:
-        for hobby, data in hobby_data.items():
-            for keyword in data["keywords"]:
-                if keyword in text:
-                    st.session_state.last_topic = hobby
-
-                    base = random.choice(data["responses"])
-                    suggestion = random.choice(data["suggestions"])
-
-                    st.session_state.last_suggestion = suggestion
-                    st.session_state.rejected = []  # reset rejects for new topic
-
-                    response = f"{base}\n\n💡 You could also try **{suggestion}**!"
-                    break
-            if response:
                 break
+        if detected:
+            break
 
-    # ✅ 4. Fallback (only if nothing else matched)
+    # If nothing detected
     if not response:
         response = random.choice([
-            "That sounds fun! 😊 Tell me more!",
-            "Nice! What do you enjoy most about it?",
-            "Cool! How did you get into that?"
+            "That sounds interesting! 😊 Can you tell me more?",
+            "Nice! What kind of hobbies do you enjoy?",
+            "Cool! Tell me more about what you like!"
         ])
 
     # Show response
