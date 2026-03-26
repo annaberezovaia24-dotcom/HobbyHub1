@@ -72,7 +72,7 @@ if user_input:
     if any(word in text for word in ["hi", "hello", "hey"]):
         response = random.choice(greetings)
 
-    # ✅ 2. User asks for suggestions directly
+    # ✅ 2. User asks for suggestions
     elif any(phrase in text for phrase in [
         "suggest", "recommend", "give me ideas", "any hobby"
     ]):
@@ -94,7 +94,40 @@ if user_input:
 
         response += "\nDo any of these sound interesting?"
 
-    # ✅ 3. Dislike handling
+    # ✅ 3. MORE IDEAS (NEW FEATURE)
+    elif any(phrase in text for phrase in [
+        "more", "more ideas", "something else", "another", "anything else"
+    ]):
+        category = st.session_state.last_category
+
+        if category:
+            data = hobby_data[category]
+
+            available = [
+                h for h in data["similar"]
+                if h not in st.session_state.last_suggestions
+                and h not in st.session_state.rejected
+            ]
+
+            if not available:
+                available = data["similar"]
+
+            new_suggestions = random.sample(available, min(3, len(available)))
+            st.session_state.last_suggestions = new_suggestions
+
+            response = (
+                "Sure! 😊 Here are some more ideas:\n\n"
+                "💡 You could also try:\n"
+            )
+
+            for s in new_suggestions:
+                response += f"- **{s}**\n"
+
+            response += "\nDo any of these sound interesting?"
+        else:
+            response = "Tell me a hobby you like first 😊"
+
+    # ✅ 4. Dislike handling
     elif any(word in text for word in ["don't like", "do not like", "hate", "dislike"]):
         category = st.session_state.last_category
 
@@ -124,7 +157,7 @@ if user_input:
         else:
             response = "No problem 😊 What kind of hobbies do you prefer?"
 
-    # ✅ 4. Detect hobby and suggest similar ones
+    # ✅ 5. Detect hobby
     else:
         for category, data in hobby_data.items():
             for keyword in data["keywords"]:
@@ -157,7 +190,7 @@ if user_input:
             if detected:
                 break
 
-    # ✅ 5. Fallback
+    # ✅ 6. Fallback
     if not response:
         response = random.choice([
             "That sounds interesting! 😊 Tell me more!",
