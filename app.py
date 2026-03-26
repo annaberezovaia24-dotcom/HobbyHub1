@@ -4,7 +4,7 @@ import random
 st.set_page_config(page_title="Hobby Chatbot", page_icon="🎨")
 
 st.title("🎨 Hobby & Interests Chatbot")
-st.write("Tell me what you like, and I'll suggest similar hobbies!")
+st.write("Tell me what you like, or ask me to suggest hobbies!")
 
 # Hobby categories
 hobby_data = {
@@ -72,15 +72,35 @@ if user_input:
     if any(word in text for word in ["hi", "hello", "hey"]):
         response = random.choice(greetings)
 
-    # ✅ 2. Dislike handling
+    # ✅ 2. User asks for suggestions directly
+    elif any(phrase in text for phrase in [
+        "suggest", "recommend", "give me ideas", "any hobby"
+    ]):
+        category = random.choice(list(hobby_data.keys()))
+        data = hobby_data[category]
+
+        suggestions = random.sample(data["similar"], min(3, len(data["similar"])))
+
+        st.session_state.last_category = category
+        st.session_state.last_suggestions = suggestions
+
+        response = (
+            "Of course! 😊 Here are some hobby ideas:\n\n"
+            "💡 You could try:\n"
+        )
+
+        for s in suggestions:
+            response += f"- **{s}**\n"
+
+        response += "\nDo any of these sound interesting?"
+
+    # ✅ 3. Dislike handling
     elif any(word in text for word in ["don't like", "do not like", "hate", "dislike"]):
         category = st.session_state.last_category
 
         if category:
-            # mark previous suggestions as rejected
             st.session_state.rejected.extend(st.session_state.last_suggestions)
 
-            # pick new ones
             available = [
                 h for h in hobby_data[category]["similar"]
                 if h not in st.session_state.rejected
@@ -104,7 +124,7 @@ if user_input:
         else:
             response = "No problem 😊 What kind of hobbies do you prefer?"
 
-    # ✅ 3. Detect hobby and suggest similar ones
+    # ✅ 4. Detect hobby and suggest similar ones
     else:
         for category, data in hobby_data.items():
             for keyword in data["keywords"]:
@@ -112,7 +132,6 @@ if user_input:
                     detected = True
                     st.session_state.last_category = category
 
-                    # avoid repeats
                     available = [
                         h for h in data["similar"]
                         if h not in st.session_state.rejected
@@ -138,7 +157,7 @@ if user_input:
             if detected:
                 break
 
-    # ✅ 4. Fallback
+    # ✅ 5. Fallback
     if not response:
         response = random.choice([
             "That sounds interesting! 😊 Tell me more!",
